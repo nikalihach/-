@@ -1,0 +1,219 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ТСПП_наброски_
+{
+    class Provider
+    {
+    public Provider(String name, int supply, float cost) //Поставщик
+        {
+            this.name = name;
+            this.supply = supply; 
+            this.cost = cost; 
+        }
+        String name;
+        public int supply; //Запасы
+        public float cost; //Стоимость товара
+    }
+
+    class Consumer //Покупатель
+    {
+        public Consumer(String name, int order)
+        {
+            this.name = name;
+            this.order = order;
+        }
+
+        String name;
+        public int order; //потреби споживача
+    }
+
+    class Expenses //затраты
+    {
+        
+        private float fuel; //топливо
+        private float purchase; // Сумма закупки
+        private float summ; // Общая сумма
+
+        public Expenses(float fuel, float purchase)
+        {
+            this.fuel = fuel;
+            this.purchase = purchase;
+        }
+
+        public float Count()
+        {
+            return summ = fuel+purchase;
+        }
+    }
+
+    class ReferencePlan //опорный план
+    {
+       private float[,] cost; //масів з витратами
+       private float[,] auxiliary; //допоміжний масив
+       private float[,] plan; //опорний план
+        private int[] stock; //масив запасів
+        private int[] stock_remnant; //залишки запасів
+        private int[] needs; //масив попиту 
+        private int[] needs_remnant; //залишки попиту
+        private int non_zero = 0; //кількість не-нульових елементів масиву plan
+        
+        public ReferencePlan(float[,] _cost, int[]_stock, int[]_needs)
+        {
+            cost = _cost;
+            stock = _stock;
+            needs = _needs;
+            Initialization();
+        }
+        private void Initialization()
+        {
+            plan = new float[cost.GetLength(0), cost.GetLength(1)];
+            auxiliary = new float[cost.GetLength(0), cost.GetLength(1)];
+            stock_remnant = new int[stock.Length];
+            needs_remnant = new int[needs.Length];
+
+            Array.Copy(cost, plan, cost.Length);
+            Array.Copy(cost, auxiliary, cost.Length);
+            Array.Copy(stock, stock_remnant, stock.Length);
+            Array.Copy(needs, needs_remnant, needs.Length);
+        }
+
+        private void MinimalElement ()
+        {
+            float min = 9999999; //минимальний елемент
+            int index1=0, index2=0; //змінні для збереження індексу
+            
+            for (int k = 0; k < cost.Length; k++)
+            {
+                for (int i = 0; i < stock.Length; i++)
+                {
+                    for (int j = 0; j < needs.Length; j++)
+                    {
+                        if (auxiliary[i, j] < min)
+                        {
+                            min = auxiliary[i, j];
+                            index1 = i;
+                            index2 = j;
+                        }
+                    }
+                }
+               
+                if (stock_remnant[index1] >= needs_remnant[index2]) //якщо запасів більше ніж потрібно замовнику, то
+                {
+                    plan[index1, index2] = needs_remnant[index2]; //в план записується попит
+
+                    if(plan[index1, index2] != 0)
+                    {
+                        non_zero++;
+                    }
+                  
+                    stock_remnant[index1] = stock_remnant[index1] - needs_remnant[index2]; //розрахунок залишку запасів на складі
+                    needs_remnant[index2] = 0;
+                }
+
+                else if (stock_remnant[index1] <= needs_remnant[index2])
+                {
+                    plan[index1, index2] = stock_remnant[index1];
+                    
+                    if (plan[index1, index2] != 0)
+                    {
+                        non_zero++;
+                    }
+
+                    needs_remnant[index2] = needs_remnant[index2] - stock_remnant[index1]; //розрахунок залишку потреб замовника
+                    stock_remnant[index1]=0;
+                }
+
+                Console.WriteLine("plan[" + index1 + ", " + index2 + "] = " + plan[index1, index2]);
+                Console.WriteLine();
+
+                auxiliary[index1, index2] = 88888;
+                 min = 9999999;
+           }
+        }
+
+         private void FindingPotentials()
+        {
+            MinimalElement();
+
+            int[] U = new int[stock.Length]; //Масив потенціалів u
+            int[] V = new int[needs.Length]; //Масив потенціалів v
+
+         int[] u_index = new int[non_zero]; //Масив для збереження індексів на перетині не-нульового елементу масива (u - А)
+         int[] v_index = new int [non_zero]; //Масив для збереження індексів на перетині не-нульового елементу масива (v - В)
+
+            int k = 0;
+            for (int i = 0; i < stock.Length; i++)
+            {
+                for (int j = 0; j < needs.Length; j++)
+                {
+                    if(plan[i, j] != 0)
+                        {
+                        u_index[k] = i;
+                        v_index[k] = j;
+                            k++;
+                        }
+                }
+            }
+
+            U[u_index[0]] = 0;
+            V[v_index[0]] = (int)cost[u_index[0], v_index[0]] - U[u_index[0]];
+
+            int u_current, v_current;
+            u_current = u_index[0];
+            v_current = v_index[0];
+            int new_index_u = 0;
+            int new_index_v = 0;
+
+            int []index = new int[non_zero];
+            index[0] = 0;
+            int m;
+
+            for (int t = 1; t < non_zero; t++)
+            {
+                m = 0;
+                for (int i = 1; i < non_zero; i++)
+                {
+                    if (u_index[i] == u_current && i != index[m])
+                    {
+                        V[v_index[i]] = (int)cost[u_index[i], v_index[i]] - U[u_current];
+                        //Console.WriteLine(" V[" + v_index[i] + "]=" + V[v_index[i]]);
+                        new_index_v = v_index[i];
+                        m++;
+                        index[m] = i;
+                    }
+
+                    else if (v_index[i] == v_current && i != index[m])
+                    {
+                        U[u_index[i]] = (int)cost[u_index[i], v_index[i]] - V[v_current];
+                        //Console.WriteLine(" U[" + u_index[i] + "]=" + U[u_index[i]]);
+                        new_index_u = u_index[i];
+                        m++;
+                        index[m] = i;
+                    }
+                }
+                u_current = new_index_u;
+                v_current = new_index_v;
+            }
+
+        }
+
+       public void CalculateGrades()
+        {
+            FindingPotentials();
+        }
+
+    }
+
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+           
+        }
+    }
+}
