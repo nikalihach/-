@@ -204,9 +204,31 @@ namespace ТСПП_наброски_
        public void CalculateGrades()
         {
             FindingPotentials();
+            
+             for (int i = 0; i < stock.Length; i++)
+            {
+                for (int j = 0; j < needs.Length; j++)
+                {
+                    if (plan[i, j] == 0)
+                    {
+                        grades[i, j] = (int)cost[i, j] - (U[i]+V[j]);
+                        Console.WriteLine((int)cost[i, j] +"- (" + U[i]+"+" + V[j] +") = "+grades[i, j]);
+                        if (grades[i, j] < 0)
+                        {
+                            Recalculation(i,j);
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
     }
+    
+     public void Recalculation(int i, int j)
+        {
+        
+        }
 
 
     class Program
