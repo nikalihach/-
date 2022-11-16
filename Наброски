@@ -1,67 +1,78 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ТСПП_наброски_
-{
-    class Provider
+ class Provider
     {
-    public Provider(String name, int supply, float cost) //Поставщик
+        public Provider(String name, String address, int supply, float cost) //Поставщик
         {
             this.name = name;
-            this.supply = supply; 
-            this.cost = cost; 
+            this.address = address;
+            this.supply = supply;
+            this.cost = cost;
         }
-        String name;
+
+        public String name;
+        public String address;
         public int supply; //Запасы
         public float cost; //Стоимость товара
+
+        ~Provider()
+        {
+
+        }
     }
 
-    class Consumer //Покупатель
+    class Client //Покупатель
     {
-        public Consumer(String name, int order)
+        public Client(String name, string address, int order)
         {
             this.name = name;
             this.order = order;
+            this.address = address;
         }
 
-        String name;
+        public String name;
+        public String address;
         public int order; //потреби споживача
+
+        ~Client()
+        {
+        }
     }
 
     class Expenses //затраты
     {
-        
-        private float fuel; //топливо
-        private float purchase; // Сумма закупки
-        private float summ; // Общая сумма
+        public float[,] fuel_spending; //витрати на топливо
+        public float[] product_costs; //витрати на товар
+        private float[,] general_expenses; // Общая сумма
 
-        public Expenses(float fuel, float purchase)
+        public float[,] Count()
         {
-            this.fuel = fuel;
-            this.purchase = purchase;
+            general_expenses = new float[fuel_spending.GetLength(0), fuel_spending.GetLength(1)];
+            for (int i = 0; i < fuel_spending.GetLength(0); i++)
+                for (int j = 0; j < general_expenses.GetLength(1); j++)
+                {
+                    general_expenses[i, j] = fuel_spending[i, j] + product_costs[i];
+                }
+
+            return general_expenses;
         }
 
-        public float Count()
+        ~Expenses()
         {
-            return summ = fuel+purchase;
         }
     }
 
     class ReferencePlan //опорный план
     {
-       private float[,] cost; //масів з витратами
-       private float[,] auxiliary; //допоміжний масив
-       private float[,] plan; //опорний план
+        private float[,] cost; //масів з витратами
+        private float[,] plan; //опорний план
         private int[] stock; //масив запасів
-        private int[] stock_remnant; //залишки запасів
         private int[] needs; //масив попиту 
-        private int[] needs_remnant; //залишки попиту
+       
         private int non_zero = 0; //кількість не-нульових елементів масиву plan
-        
-        public ReferencePlan(float[,] _cost, int[]_stock, int[]_needs)
+
+        int[] U; //Масив потенціалів u
+        int[] V; //Масив потенціалів v
+
+        public ReferencePlan(float[,] _cost, int[] _stock, int[] _needs)
         {
             cost = _cost;
             stock = _stock;
@@ -71,21 +82,36 @@ namespace ТСПП_наброски_
         private void Initialization()
         {
             plan = new float[cost.GetLength(0), cost.GetLength(1)];
-            auxiliary = new float[cost.GetLength(0), cost.GetLength(1)];
-            stock_remnant = new int[stock.Length];
-            needs_remnant = new int[needs.Length];
-
             Array.Copy(cost, plan, cost.Length);
-            Array.Copy(cost, auxiliary, cost.Length);
-            Array.Copy(stock, stock_remnant, stock.Length);
-            Array.Copy(needs, needs_remnant, needs.Length);
+           
+            U = new int[stock.Length]; //Масив потенціалів u
+            V = new int[needs.Length]; //Масив потенціалів v
         }
 
-        private void MinimalElement ()
+        public void Start()
         {
+            MinimalElement();
+            FindingPotentials();
+            CalculateGrades();
+
+        }
+
+        private void MinimalElement()
+        {
+           int[] stock_remnant; //залишки запасів
+           stock_remnant = new int[stock.Length];
+           int[] needs_remnant; //залишки попиту
+           needs_remnant = new int[needs.Length];
+           Array.Copy(stock, stock_remnant, stock.Length);
+           Array.Copy(needs, needs_remnant, needs.Length);
+
+           float[,] auxiliary; //допоміжний масив
+           auxiliary = new float[cost.GetLength(0), cost.GetLength(1)];
+           Array.Copy(cost, auxiliary, cost.Length);
+
             float min = 9999999; //минимальний елемент
-            int index1=0, index2=0; //змінні для збереження індексу
-            
+            int index1 = 0, index2 = 0; //змінні для збереження індексу
+
             for (int k = 0; k < cost.Length; k++)
             {
                 for (int i = 0; i < stock.Length; i++)
@@ -100,16 +126,16 @@ namespace ТСПП_наброски_
                         }
                     }
                 }
-               
+
                 if (stock_remnant[index1] >= needs_remnant[index2]) //якщо запасів більше ніж потрібно замовнику, то
                 {
                     plan[index1, index2] = needs_remnant[index2]; //в план записується попит
 
-                    if(plan[index1, index2] != 0)
+                    if (plan[index1, index2] != 0)
                     {
                         non_zero++;
                     }
-                  
+
                     stock_remnant[index1] = stock_remnant[index1] - needs_remnant[index2]; //розрахунок залишку запасів на складі
                     needs_remnant[index2] = 0;
                 }
@@ -117,45 +143,41 @@ namespace ТСПП_наброски_
                 else if (stock_remnant[index1] <= needs_remnant[index2])
                 {
                     plan[index1, index2] = stock_remnant[index1];
-                    
+
                     if (plan[index1, index2] != 0)
                     {
                         non_zero++;
                     }
 
                     needs_remnant[index2] = needs_remnant[index2] - stock_remnant[index1]; //розрахунок залишку потреб замовника
-                    stock_remnant[index1]=0;
+                    stock_remnant[index1] = 0;
                 }
 
                 Console.WriteLine("plan[" + index1 + ", " + index2 + "] = " + plan[index1, index2]);
                 Console.WriteLine();
 
                 auxiliary[index1, index2] = 88888;
-                 min = 9999999;
-           }
+                min = 9999999;
+            }
         }
 
-         private void FindingPotentials()
+        private void FindingPotentials()
         {
-            MinimalElement();
-
-            int[] U = new int[stock.Length]; //Масив потенціалів u
-            int[] V = new int[needs.Length]; //Масив потенціалів v
-
-         int[] u_index = new int[non_zero]; //Масив для збереження індексів на перетині не-нульового елементу масива (u - А)
-         int[] v_index = new int [non_zero]; //Масив для збереження індексів на перетині не-нульового елементу масива (v - В)
+            int[] u_index = new int[non_zero]; //Масив для збереження індексів на перетині не-нульового елементу масива (u - А)
+            int[] v_index = new int[non_zero]; //Масив для збереження індексів на перетині не-нульового елементу масива (v - В)
 
             int k = 0;
+
             for (int i = 0; i < stock.Length; i++)
             {
                 for (int j = 0; j < needs.Length; j++)
                 {
-                    if(plan[i, j] != 0)
-                        {
+                    if (plan[i, j] != 0)
+                    {
                         u_index[k] = i;
                         v_index[k] = j;
-                            k++;
-                        }
+                        k++;
+                    }
                 }
             }
 
@@ -165,77 +187,248 @@ namespace ТСПП_наброски_
             int u_current, v_current;
             u_current = u_index[0];
             v_current = v_index[0];
-            int new_index_u = 0;
-            int new_index_v = 0;
 
-            int []index = new int[non_zero];
+            int[] index = new int[non_zero];
             index[0] = 0;
-            int m;
+            int m = 0;
 
             for (int t = 1; t < non_zero; t++)
             {
-                m = 0;
                 for (int i = 1; i < non_zero; i++)
                 {
-                    if (u_index[i] == u_current && i != index[m])
+                    for (int j = 1; j < non_zero; j++)
+                    {
+                        if (i == index[j])
+                        {
+                            goto met;
+                        }
+                    }
+
+                    if (u_index[i] == u_current )
                     {
                         V[v_index[i]] = (int)cost[u_index[i], v_index[i]] - U[u_current];
                         //Console.WriteLine(" V[" + v_index[i] + "]=" + V[v_index[i]]);
-                        new_index_v = v_index[i];
+                        v_current = v_index[i];
                         m++;
                         index[m] = i;
                     }
 
-                    else if (v_index[i] == v_current && i != index[m])
+                    else if (v_index[i] == v_current )
                     {
                         U[u_index[i]] = (int)cost[u_index[i], v_index[i]] - V[v_current];
                         //Console.WriteLine(" U[" + u_index[i] + "]=" + U[u_index[i]]);
-                        new_index_u = u_index[i];
+                        u_current = u_index[i];
                         m++;
                         index[m] = i;
                     }
+
+                met:;
                 }
-                u_current = new_index_u;
-                v_current = new_index_v;
             }
 
+            for (int i = 0; i < V.Length; i++)
+            {
+                Console.WriteLine(" V[" + i + "]=" + V[i]);
+            }
+
+            for (int i = 0; i < U.Length; i++)
+            {
+                Console.WriteLine(" U[" + i + "]=" + U[i]);
+            }
+
+            CalculateGrades();
         }
 
-       public void CalculateGrades()
+        private void CalculateGrades()
         {
-            FindingPotentials();
-            
-             for (int i = 0; i < stock.Length; i++)
+            int [,] grades;
+            grades = new int[cost.GetLength(0), cost.GetLength(1)];
+
+            int stop = 0;
+            int index_i = 0, index_j = 0;
+
+            for (int i = 0; i < stock.Length; i++)
             {
                 for (int j = 0; j < needs.Length; j++)
                 {
                     if (plan[i, j] == 0)
                     {
-                        grades[i, j] = (int)cost[i, j] - (U[i]+V[j]);
-                        Console.WriteLine((int)cost[i, j] +"- (" + U[i]+"+" + V[j] +") = "+grades[i, j]);
+                        grades[i, j] = (int)cost[i, j] - (U[i] + V[j]);
+                        Console.WriteLine((int)cost[i, j] + "- (" + U[i] + "+" + V[j] + ") = " + grades[i, j]);
                         if (grades[i, j] < 0)
                         {
-                            Recalculation(i,j);
-                            break;
+                            stop = 1;
+                            index_i = i;
+                            index_j = j;
                         }
                     }
                 }
             }
+
+            if (stop == 1)
+            {
+                Console.WriteLine("plan ne optimalniy");
+               Recalculation(index_i, index_j);
+            }
+            else
+            {
+                Console.WriteLine("plan optimalniy");
+            }
         }
 
-    }
-    
-     public void Recalculation(int i, int j)
+        private void Recalculation(int i, int j)
         {
-        
-        }
+            float[,] recalculation = new float[cost.GetLength(0), cost.GetLength(1)];
+            int counter =1;
+            int[] current_index = new int[2];
+            int[] old_index = new int[2];
+            int[] deadlock = new int[2] { 666, 666 };
+            recalculation[i, j] = 1;
+            current_index[0] = i;
+            current_index[1] = j;
+            int stop_minus;
+            int stop_plus;
+            int finish = 0;
+
+            while(true)
+            {
+               //Console.WriteLine("COUNT = " + counter);
+                if (counter % 2 != 0)
+                {
+                    stop_minus = 0;
+
+                    for (int horizon = 0; horizon < needs.Length; horizon++)
+                    {
+                        if (horizon != current_index[1] && plan[current_index[0], horizon] != 0 && horizon != deadlock[1])
+                        {
+                           // Console.WriteLine("i am here");
+                            recalculation[current_index[0], horizon] = -1;
+                            old_index[1] = current_index[1];
+                            current_index[1] = horizon;
+
+                           // Console.WriteLine(counter);
+                           //Console.WriteLine("MINUS: current_index_1 = " + current_index[0] + "   current_index_2 = " + current_index[1]);
+                            break;
+                        }
+
+                        else
+                        {
+                            stop_minus++;
+                            //Console.WriteLine("Stop = " + stop_minus);
+
+                            if (stop_minus > needs.Length - 1)
+                            {
+                                //Console.WriteLine("NO");
+                                recalculation[current_index[0], current_index[1]] = 0;
+                                deadlock[0] = current_index[0];
+                                current_index[0] = old_index[0];
+                                stop_minus = 0;
+                                break;
+                            }
+                        }
+                    }
+                }
 
 
-    class Program
-    {
-        static void Main(string[] args)
-        {
-           
+               else if (counter % 2 == 0)
+                {
+                    stop_plus = 0;
+                    for (int vertical = 0; vertical < stock.Length; vertical++)
+                    {
+                        if (current_index[1] == j && vertical == i && counter > 1)
+                        {
+                            //Console.WriteLine("POINT");
+                            finish = 1;
+                            break;  
+                            //goto met;
+                        }
+
+
+                        if (vertical != current_index[0] && plan[vertical, current_index[1]] != 0 && vertical != deadlock[0])
+                        {
+                            //Console.WriteLine("I AM HERE");
+
+                            recalculation[vertical, current_index[1]] = 1;
+                            old_index[0] = current_index[0];
+                            current_index[0] = vertical;
+                            //Console.WriteLine("PLUS: current_index_1 = " + current_index[0] + "   current_index_2 = " + current_index[1]);
+                           // Console.WriteLine(counter);
+                            
+                            break;
+                        }
+
+                        else
+                        {
+                            stop_plus++;
+                            //Console.WriteLine("Stop = " + stop_plus);
+
+                            if (stop_plus > stock.Length-1)
+                            {
+                                //Console.WriteLine("NO");
+                                recalculation[current_index[0], current_index[1]] = 0;
+                                deadlock[1] = current_index[1];
+                                current_index[1] = old_index[1];
+                                stop_plus = 0;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                counter++;
+
+               if (finish == 1) break;
+            }
+
+            for (int k = 0; k < stock.Length; k++)
+            {
+                for (int p = 0; p < needs.Length; p++)
+                {
+                    Console.Write(recalculation[k, p]);
+                }
+                Console.WriteLine();
+            }
+
+            float min = 99999999;
+            for (int k = 0; k < stock.Length; k++)
+            {
+                for (int p = 0; p < needs.Length; p++)
+                {
+                    if (recalculation[k, p] == -1 && recalculation[k, p] < min)
+                    {
+                        min = plan[k, p];
+                    }
+                }
+            }
+            Console.WriteLine("Minimum = " + min);
+
+            for (int k = 0; k < plan.GetLength(0); k++)
+            {
+                for (int p = 0; p < plan.GetLength(1); p++)
+                {
+
+                    if (recalculation[k, p] == -1)
+                    {
+                        plan[k, p] = plan[k, p] - min;
+                    }
+
+                    if (recalculation[k, p] == 1)
+                    {
+                        plan[k, p] = plan[k, p] + min;
+                    }
+                }
+            }
+
+
+            for (int k = 0; k < stock.Length; k++)
+            {
+                for (int p = 0; p < needs.Length; p++)
+                {
+                    Console.Write(plan[k, p]);
+                }
+                Console.WriteLine();
+            }
+
+            FindingPotentials();
         }
     }
-}
