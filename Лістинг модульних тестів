@@ -1,0 +1,281 @@
+using Xunit;
+
+namespace TSPP_class.Tests
+{
+    public class UnitTest1
+    {
+    
+        [Fact]
+        public void Test_class_Provider()
+            {
+            string name = "  ковальов  мирослав михайлович ";
+            string address = "Корольова, 29";
+            uint supply = 20;
+            float cost = 210;
+            string check_string = "Ковальов Мирослав Михайлович";
+
+            var provider1 = new Provider(name, address, supply, cost);
+           
+            Assert.Equal(check_string, provider1.name);
+           }
+
+        [Fact]
+        public void Test_class_Client()
+        {
+            string name = "Виноградов Марк Михайлович";
+            string address = " поштова,  64 ";
+            uint order = 20;
+            string check_string = "Поштова, 64";
+
+            var client1 = new Client(name, address, order);
+
+            Assert.Equal(check_string, client1.address);
+        }
+
+        [Fact]
+        public void Test_class_Expenses()
+        {
+            var expenses = new Expenses();
+            expenses.product_costs = new float [3]{210,240,220}; 
+            expenses.fuel_spending = new  float[3, 4] { { 50,63,72,80 }, { 42,64,55,73},{ 22,46,52,30 } };
+            float[,] check_arr = new float[3, 4] { { 260, 273, 282, 290 }, { 282, 304, 295, 313 }, { 242, 266, 272, 250 } };
+            float[,] general_expenses = expenses.Return_GeneralExpenses();
+            Assert.Equal(check_arr, general_expenses);
+        }
+
+        [Fact]
+        public void Test_class_OptimalPlan_Metod_MinimalElement_1()
+        {
+            uint[] stock = { 20, 35, 30 };
+            uint[] needs = { 10, 15, 25, 30 };
+            float[,] general_expenses = new float[3, 4] { { 11, 4, 3, 1 }, { 6, 8, 9, 7 }, { 4, 8, 4, 2 } };
+            float[,] check = new float [3,4]{ {0,0,0,20 },{0,15,15,0 },{10,0,10,10}};
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            float[,] plan = new float[3,4];
+            plan = OP.Metod_MinimalElement();
+
+            /*
+            bool equality()
+            {
+                int not_equal = 0;
+                for (int i = 0; i < plan.GetLength(0); i++)
+                {
+                    for (int j = 0; j < plan.GetLength(1); j++)
+                    {
+                        if (plan[i, j] != check[i, j])
+                        {
+                            not_equal++;
+                        }
+                    }
+                }
+
+                if (not_equal != 0)
+                {
+                    return false;
+                }
+
+                else 
+                { 
+                return true;
+                 }
+            }
+
+            Assert.True(equality());
+            */
+            Assert.Equal(check, plan);
+
+        }
+
+        [Fact]
+        public void Test_class_OptimalPlan_Metod_MinimalElement_2()
+        {
+            uint[] stock = { 10,25,10,15};
+            uint[] needs = { 15, 10, 15,20};
+            float[,] general_expenses = new float[4, 4] { { 60, 70, 63, 82 }, { 75, 70, 68, 60 }, { 78, 90, 86, 67 },{60,55,79,85 } };
+            float[,] check = new float[4, 4] {{ 10, 0, -1, 0 }, { 0, 0, 5, 20 }, {0, 0, 10, 0 },{ 5,10,0,0}};
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            float[,] plan = OP.Metod_MinimalElement();
+            Assert.Equal(check, plan);
+        }
+
+        [Fact]
+
+        public void Test_class_OptimalPlan_FindingPotentials_1()
+        {
+            uint[] stock = { 20, 35, 30 };
+            uint[] needs = { 10, 15, 25, 30 };
+            float[,] general_expenses = new float[3, 4] { { 11, 4, 3, 1 }, { 6, 8, 9, 7 }, { 4, 8, 4, 2 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+             OP.FindingPotentials();
+
+            int[] U_check = new int[3] { 0, 6, 1 };
+            int[] V_check = new int[4] { 3, 2, 3, 1 };
+
+            Assert.Equal(U_check, OP.U);
+            Assert.Equal(V_check, OP.V);
+
+        }
+
+        [Fact]
+
+        public void Test_class_OptimalPlan_FindingPotentials_2()
+        {
+            uint[] stock = { 10, 25, 10, 15 };
+            uint[] needs = { 15, 10, 15, 20 };
+            float[,] general_expenses = new float[4, 4] { { 60, 70, 63, 82 }, { 75, 70, 68, 60 }, { 78, 90, 86, 67 }, { 60, 55, 79, 85 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+
+            int[] U_check = new int[4] { 0, 5, 23, 0 };
+            int[] V_check = new int[4] { 60, 55, 63, 55 };
+
+            Assert.Equal(U_check, OP.U);
+            Assert.Equal(V_check, OP.V);
+        }
+
+        [Fact]
+
+        public void Test_class_OptimalPlan_CalculateGrades_1()
+        {
+            uint[] stock = { 20, 35, 30 };
+            uint[] needs = { 10, 15, 25, 30 };
+            float[,] general_expenses = new float[3, 4] { { 11, 4, 3, 1 }, { 6, 8, 9, 7 }, { 4, 8, 4, 2 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+
+            Assert.False(OP.plan_optimality);
+        }
+
+        [Fact]
+
+        public void Test_class_OptimalPlan_CalculateGrades_2()
+        {
+            uint[] stock = { 10, 25, 10, 15 };
+            uint[] needs = { 15, 10, 15, 20 };
+            float[,] general_expenses = new float[4, 4] { { 60, 70, 63, 82 }, { 75, 70, 68, 60 }, { 78, 90, 86, 67 }, { 60, 55, 79, 85 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+
+            Assert.False(OP.plan_optimality);
+        }
+
+        [Fact]
+        public void Test_class_OptimalPlan_Recalculations_1()
+        {
+            uint[] stock = { 20, 35, 30 };
+            uint[] needs = { 10, 15, 25, 30 };
+            float[,] general_expenses = new float[3, 4] { { 11, 4, 3, 1 }, { 6, 8, 9, 7 }, { 4, 8, 4, 2 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+            float[,] recalc_plan_chekc = new float[3, 4] { {0,0,0,20 }, { 10,15,5,0}, { 0,0,20,10 } };
+            Assert.Equal(recalc_plan_chekc, OP.plan);
+        }
+
+
+            [Fact]
+        public void Test_class_OptimalPlan_Recalculations_2()
+        {
+            uint[] stock = { 10, 25, 10, 15 };
+            uint[] needs = { 15, 10, 15, 20 };
+            float[,] general_expenses = new float[4, 4] { { 60, 70, 63, 82 }, { 75, 70, 68, 60 }, { 78, 90, 86, 67 }, { 60, 55, 79, 85 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+
+            float[,] recalc_plan_chekc = new float[4, 4] { { 10, 0, -1, 0 } ,{0,0,15, 10}, {0,0,0,10 },{ 5,10,0,0} };
+            Assert.Equal(recalc_plan_chekc, OP.plan);
+
+        }
+
+        [Fact]
+        public void Test_class_OptimalPlan_final_check_1()
+        {
+            uint[] stock = { 20, 35, 30 };
+            uint[] needs = { 10, 15, 25, 30 };
+            float[,] general_expenses = new float[3, 4] { { 11, 4, 3, 1 }, { 6, 8, 9, 7 }, { 4, 8, 4, 2 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+            Assert.True(OP.plan_optimality);
+        }
+
+
+        [Fact]
+        public void Test_class_OptimalPlan_final_check_2()
+        {
+            uint[] stock = { 10, 25, 10, 15 };
+            uint[] needs = { 15, 10, 15, 20 };
+            float[,] general_expenses = new float[4, 4] { { 60, 70, 63, 82 }, { 75, 70, 68, 60 }, { 78, 90, 86, 67 }, { 60, 55, 79, 85 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+            Assert.True(OP.plan_optimality);
+        }
+
+        [Fact]
+        public void Test_class_Report_1()
+        {
+            string[] provider_addresses = new string[] { "Солом’янська, 76", "Копиленка, 11", "Паторжинського, 54" };
+            string[] clien_addresses = new string[] { " Володимирська, 20", "Михайла Грушевського, 32", "Арсенальна, 3", "М. Коцюбинського, 05" };
+
+            uint[] stock = { 20, 35, 30 };
+            uint[] needs = { 10, 15, 25, 30 };
+            float[,] general_expenses = new float[3, 4] { { 11, 4, 3, 1 }, { 6, 8, 9, 7 }, { 4, 8, 4, 2 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+
+            string text_check = "З адреси Солом’янська, 76 треба направити 20 одиниць вантажу до споживача за адресою М. Коцюбинського, 05"+".\n"+
+                "З адреси Копиленка, 11 треба направити 10 одиниць вантажу до споживача за адресою  Володимирська, 20" + ".\n" + 
+                "З адреси Копиленка, 11 треба направити 15 одиниць вантажу до споживача за адресою Михайла Грушевського, 32" + ".\n" + 
+                "З адреси Копиленка, 11 треба направити 5 одиниць вантажу до споживача за адресою Арсенальна, 3"+".\n" +
+               "З адреси Паторжинського, 54 треба направити 20 одиниць вантажу до споживача за адресою Арсенальна, 3" + ".\n" + 
+               "З адреси Паторжинського, 54 треба направити 10 одиниць вантажу до споживача за адресою М. Коцюбинського, 05" + ".\n";
+            var report = new Report();
+
+            report.get_data_for_report(OP.return_plan(), provider_addresses, clien_addresses);
+            Assert.Equal(text_check, report.report_text);
+
+        }
+
+        [Fact]
+        public void Test_class_Report_2()
+        {
+            string[] provider_addresses = new string[] { "Солом’янська, 76", "Копиленка, 11", "Паторжинського, 54" };
+            string[] clien_addresses = new string[] { "Львівська, 86", "Б. Грінченка, 43", "Арсенальна, 3", "Різницька, 51" };
+
+            uint[] stock = { 20, 35, 30 };
+            uint[] needs = { 10, 15, 25, 30 };
+            float[,] general_expenses = new float[3, 4] { { 11, 4, 3, 1 }, { 6, 8, 9, 7 }, { 4, 8, 4, 2 } };
+            var OP = new OptimalPlan(general_expenses, stock, needs);
+            OP.Metod_MinimalElement();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+            OP.FindingPotentials();
+            OP.CalculateGrades();
+
+            var report = new Report();
+            report.get_data_for_report(OP.return_plan(), provider_addresses, clien_addresses);
+            
+            Assert.True(report.Save_report("REPORT"));
+        }
+    }
+}
