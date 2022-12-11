@@ -19,7 +19,13 @@ abstract public class general_information
             Console.WriteLine(str);
             return str;
         }
+        
+        public string return_address()
+        {
+            return address;
+        }
     }
+    
 public class Provider : general_information
     {
         public Provider(String name_provider, String address_provider, uint supply, float cost) //Постачальник
